@@ -4,16 +4,19 @@
     <title>Live Face Match</title>
 </head>
 <body>
-    <h1>Live Face Recognition (Native API)</h1>
+    <h1>Live Face Recognition (Direct API)</h1>
     <!-- Webcam Preview -->
-    <video id="webcam" autoplay muted width="640" height="480" style="border: 2px solid #ccc;"></video>
+    <video id="webcam" autoplay muted width="640" height="480" style="border: 2px solid #ccc; border-radius: 8px;"></video>
     <p id="result" style="font-weight: bold; font-size: 1.4em; color: blue;">Status: Initializing...</p>
 
     <script>
         window.onload = async function() {
-            // 1. YOUR CONNECTION SETTINGS
-            const ngrokUrl = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
+            // 1. YOUR SETTINGS
+            // IMPORTANT: If you restart Ngrok, update this URL to match your terminal
+            const ngrokUrl = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev";
             const apiKey = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
+
+            // The ?limit=1 is required to prevent the 400 error
             const apiEndpoint = `${ngrokUrl}/api/v1/recognition/recognize?limit=1`;
 
             async function startWebcam() {
@@ -26,28 +29,32 @@
                     video.srcObject = stream;
                     resultText.innerText = "Status: Scanning for faces...";
 
-                    // 3. Process a frame every 3 seconds
+                    // 3. Process a frame every 3 seconds to avoid overloading the 2 vCPU VM
                     setInterval(async () => {
                         const canvas = document.createElement('canvas');
                         canvas.width = video.videoWidth;
                         canvas.height = video.videoHeight;
                         canvas.getContext('2d').drawImage(video, 0, 0);
-                        
+
                         canvas.toBlob(async (blob) => {
                             const formData = new FormData();
-                            formData.append('file', blob);
+                            // CompreFace requires the field name to be exactly 'file'
+                            formData.append('file', blob, 'selfie.jpg');
 
                             try {
-                                // 4. Direct Fetch call to your Cloud Instance
+                                // 4. Direct Network Call
                                 const response = await fetch(apiEndpoint, {
                                     method: 'POST',
-                                    headers: { 'x-api-key': apiKey },
+                                    headers: {
+                                        'x-api-key': apiKey
+                                        // DO NOT add Content-Type here; the browser handles it
+                                    },
                                     body: formData
                                 });
-                                
+
                                 const data = await response.json();
 
-                                if (data.result && data.result[0].subjects.length > 0) {
+                                if (data.result && data.result[0].subjects && data.result[0].subjects.length > 0) {
                                     const name = data.result[0].subjects[0].subject;
                                     const score = (data.result[0].subjects[0].similarity * 100).toFixed(1);
                                     resultText.innerText = `MATCH: ${name} (${score}%)`;
