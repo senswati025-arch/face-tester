@@ -3,7 +3,7 @@
 <head>
     <title>Live Face Match</title>
     <!-- Include the CompreFace SDK from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@exadel/compreface-js-sdk@0.7.1/dist/compreface-js-sdk.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@exadel/compreface-js-sdk@0.7.1/dist/compreface-js-sdk.min.js"></script>
 </head>
 <body>
     <h1>Live Face Recognition</h1>
@@ -11,40 +11,55 @@
     <p id="result">Result: Waiting...</p>
 
     <script>
-        // Use the code from your query
-        const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; // Use HTTPS Ngrok URL
-        const port = 443; // Ngrok HTTPS uses port 443
-        const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
+       // Wait for everything to load
+window.onload = function() {
+    // Robust check for the SDK global variable
+    const SDK = window.compreface_js_sdk || window.CompreFace;
 
-        const { CompreFace } = window.compreface_js_sdk;
-        const compreFace = new CompreFace(url, port);
-        const recognitionService = compreFace.initFaceRecognitionService(api_key);
+    if (!SDK) {
+        document.getElementById('result').innerText = "Error: SDK not loaded. Check internet/CDN.";
+        return;
+    }
 
-        // Start the webcam
-        async function startWebcam() {
-            const video = document.getElementById('webcam');
+    const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
+    const port = 443; 
+    const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
+
+    // Use the SDK variable to initialize
+    const compreFace = new SDK.CompreFace(url, port);
+    const recognitionService = compreFace.initFaceRecognitionService(api_key);
+
+    async function startWebcam() {
+        const video = document.getElementById('webcam');
+        try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = stream;
 
-            // Take a frame every 3 seconds to test
             setInterval(async () => {
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0);
                 
-                // Convert frame to blob and send to your GCP instance
                 canvas.toBlob((blob) => {
                     recognitionService.recognize(blob)
                         .then(res => {
-                            document.getElementById('result').innerText = "Match: " + JSON.stringify(res.result[0].subjects[0].subject);
+                            if (res.result && res.result[0].subjects.length > 0) {
+                                document.getElementById('result').innerText = "Match: " + res.result[0].subjects[0].subject;
+                            } else {
+                                document.getElementById('result').innerText = "No face found";
+                            }
                         })
                         .catch(err => console.log("Recognition error:", err));
                 }, 'image/jpeg');
             }, 3000);
+        } catch (err) {
+            document.getElementById('result').innerText = "Camera Error: " + err.message;
         }
+    }
 
-        startWebcam();
+    startWebcam();
+};
     </script>
 </body>
 </html>
