@@ -1,25 +1,32 @@
 <!DOCTYPE html>
 <html>
-<head><title>Live Face Match</title></head>
+<head>
+    <title>Live Face Match</title>
+</head>
 <body>
-    <h1>Live Face Recognition (Direct API)</h1>
-    <video id="webcam" autoplay muted width="640" height="480" style="border: 1px solid black;"></video>
-    <p id="result" style="font-weight: bold; font-size: 1.2em;">Result: Initializing...</p>
+    <h1>Live Face Recognition (Native API)</h1>
+    <!-- Webcam Preview -->
+    <video id="webcam" autoplay muted width="640" height="480" style="border: 2px solid #ccc;"></video>
+    <p id="result" style="font-weight: bold; font-size: 1.4em; color: blue;">Status: Initializing...</p>
 
     <script>
         window.onload = async function() {
-            // Replace with your Ngrok URL and API Key
-            const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
-            const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
-            const endpoint = `${url}/api/v1/recognition/recognize`;
+            // 1. YOUR CONNECTION SETTINGS
+            const ngrokUrl = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
+            const apiKey = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
+            const apiEndpoint = `${ngrokUrl}/api/v1/recognition/recognize`;
 
             async function startWebcam() {
                 const video = document.getElementById('webcam');
+                const resultText = document.getElementById('result');
+
                 try {
+                    // 2. Access the Camera
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                     video.srcObject = stream;
-                    document.getElementById('result').innerText = "Status: Scanning...";
+                    resultText.innerText = "Status: Scanning for faces...";
 
+                    // 3. Process a frame every 3 seconds
                     setInterval(async () => {
                         const canvas = document.createElement('canvas');
                         canvas.width = video.videoWidth;
@@ -31,31 +38,38 @@
                             formData.append('file', blob);
 
                             try {
-                                const response = await fetch(endpoint, {
+                                // 4. Direct Fetch call to your Cloud Instance
+                                const response = await fetch(apiEndpoint, {
                                     method: 'POST',
-                                    headers: { 'x-api-key': api_key },
+                                    headers: { 'x-api-key': apiKey },
                                     body: formData
                                 });
+                                
                                 const data = await response.json();
 
                                 if (data.result && data.result[0].subjects.length > 0) {
-                                    const subject = data.result[0].subjects[0].subject;
-                                    document.getElementById('result').innerText = "Match: " + subject;
-                                    document.getElementById('result').style.color = "green";
+                                    const name = data.result[0].subjects[0].subject;
+                                    const score = (data.result[0].subjects[0].similarity * 100).toFixed(1);
+                                    resultText.innerText = `MATCH: ${name} (${score}%)`;
+                                    resultText.style.color = "green";
                                 } else {
-                                    document.getElementById('result').innerText = "Searching...";
-                                    document.getElementById('result').style.color = "black";
+                                    resultText.innerText = "Scanning... No match found.";
+                                    resultText.style.color = "orange";
                                 }
                             } catch (err) {
-                                console.log("API Error:", err);
-                                document.getElementById('result').innerText = "Connection Error: Check Ngrok.";
+                                console.error("API Error:", err);
+                                resultText.innerText = "Connection Error: Check if Ngrok is still running.";
+                                resultText.style.color = "red";
                             }
                         }, 'image/jpeg');
                     }, 3000);
+
                 } catch (err) {
-                    document.getElementById('result').innerText = "Camera Error: " + err.message;
+                    resultText.innerText = "Camera Error: Please allow camera access.";
+                    console.error(err);
                 }
             }
+
             startWebcam();
         };
     </script>
