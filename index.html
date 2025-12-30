@@ -2,35 +2,35 @@
 <html>
 <head>
     <title>Live Face Match</title>
-    <!-- Include the CompreFace SDK from CDN -->
-
 </head>
 <body>
     <h1>Live Face Recognition</h1>
-    <video id="webcam" autoplay muted width="640" height="480"></video>
-    <p id="result">Result: Waiting...</p>
+    <video id="webcam" autoplay muted width="640" height="480" style="border: 1px solid black;"></video>
+    <p id="result" style="font-weight: bold; font-size: 1.2em;">Result: Initializing...</p>
 
-<script type="module">
-    // 1. Import directly from a browser-compatible CDN
-    import { CompreFace } from 'https://cdn.skypack.dev/@exadel/compreface-js-sdk';
+    <script type="module">
+        // 1. Import the library directly as a module
+        import { CompreFace } from 'https://cdn.skypack.dev/@exadel/compreface-js-sdk';
 
-    window.onload = async function() {
-        const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
-        const port = 443; 
-        const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
+        window.onload = async function() {
+            // REPLACE THESE WITH YOUR ACTUAL VALUES
+            const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
+            const port = 443; 
+            const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
 
-        // 2. Initialize
-        const compreFace = new CompreFace(url, port);
-        const recognitionService = compreFace.initFaceRecognitionService(api_key);
-
-        console.log("CompreFace Initialized with Skypack!");
-
-        async function startWebcam() {
-            const video = document.getElementById('webcam');
             try {
+                // 2. Initialize the service
+                const compreFace = new CompreFace(url, port);
+                const recognitionService = compreFace.initFaceRecognitionService(api_key);
+                document.getElementById('result').innerText = "Status: SDK Loaded. Starting Camera...";
+
+                // 3. Setup the webcam
+                const video = document.getElementById('webcam');
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
+                document.getElementById('result').innerText = "Status: Scanning...";
 
+                // 4. Send frame to cloud every 3 seconds
                 setInterval(async () => {
                     const canvas = document.createElement('canvas');
                     canvas.width = video.videoWidth;
@@ -40,24 +40,27 @@
                     canvas.toBlob((blob) => {
                         recognitionService.recognize(blob)
                             .then(res => {
-                                if (res.result && res.result[0].subjects.length > 0) {
-                                    document.getElementById('result').innerText = "Match: " + res.result[0].subjects[0].subject;
+                                if (res.result && res.result[0].subjects && res.result[0].subjects.length > 0) {
+                                    document.getElementById('result').innerText = "Match Found: " + res.result[0].subjects[0].subject;
+                                    document.getElementById('result').style.color = "green";
                                 } else {
-                                    document.getElementById('result').innerText = "Scanning... No face found.";
+                                    document.getElementById('result').innerText = "Scanning... No face recognized.";
+                                    document.getElementById('result').style.color = "black";
                                 }
                             })
-                            .catch(err => console.log("API Error:", err));
+                            .catch(err => {
+                                console.log("API Error:", err);
+                                document.getElementById('result').innerText = "API Error: Check if Ngrok is still running.";
+                                document.getElementById('result').style.color = "red";
+                            });
                     }, 'image/jpeg');
                 }, 3000);
+
             } catch (err) {
-                document.getElementById('result').innerText = "Camera Error: " + err.message;
+                document.getElementById('result').innerText = "Error: " + err.message;
+                console.error(err);
             }
-        }
-
-        startWebcam();
-    };
-
-	  
+        };
     </script>
 </body>
 </html>
