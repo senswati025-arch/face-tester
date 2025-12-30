@@ -3,7 +3,7 @@
 <head>
     <title>Live Face Match</title>
     <!-- Include the CompreFace SDK from CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@exadel/compreface-js-sdk@1.0.0/dist/compreface-js-sdk.min.js"></script>
+
 </head>
 <body>
     <h1>Live Face Recognition</h1>
@@ -11,27 +11,56 @@
     <p id="result">Result: Waiting...</p>
 
     <script>
-	 window.onload = function() {
-    // Check all possible global names the library might use
-    const SDK = window.CompreFace || (window.compreface_js_sdk ? window.compreface_js_sdk.CompreFace : null);
+        <!-- Remove the old <script src="..."> tag for compreface -->
 
-    if (!SDK) {
-        document.getElementById('result').innerText = "Error: SDK failed to initialize. Try refreshing or check internet.";
-        console.error("SDK not found. Available window variables:", Object.keys(window).filter(i => i.toLowerCase().includes('compre')));
-        return;
-    }
+<script type="module">
+    // 1. Import directly from a browser-compatible CDN
+    import { CompreFace } from 'https://cdn.skypack.dev/@exadel/compreface-js-sdk';
 
-    const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
-    const port = 443; 
-    const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
+    window.onload = async function() {
+        const url = "https://shaniqua-unimparted-subarticulately.ngrok-free.dev"; 
+        const port = 443; 
+        const api_key = "df0463f7-57a6-4e72-9fae-7ea2c5a32e37";
 
-    // Use the constructor directly
-    const compreFace = new SDK(url, port);
-    const recognitionService = compreFace.initFaceRecognitionService(api_key);
-    
-    // ... rest of your startWebcam code ...
-     };
+        // 2. Initialize
+        const compreFace = new CompreFace(url, port);
+        const recognitionService = compreFace.initFaceRecognitionService(api_key);
 
+        console.log("CompreFace Initialized with Skypack!");
+
+        async function startWebcam() {
+            const video = document.getElementById('webcam');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+
+                setInterval(async () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                        recognitionService.recognize(blob)
+                            .then(res => {
+                                if (res.result && res.result[0].subjects.length > 0) {
+                                    document.getElementById('result').innerText = "Match: " + res.result[0].subjects[0].subject;
+                                } else {
+                                    document.getElementById('result').innerText = "Scanning... No face found.";
+                                }
+                            })
+                            .catch(err => console.log("API Error:", err));
+                    }, 'image/jpeg');
+                }, 3000);
+            } catch (err) {
+                document.getElementById('result').innerText = "Camera Error: " + err.message;
+            }
+        }
+
+        startWebcam();
+    };
+</script>
+	  
     </script>
 </body>
 </html>
